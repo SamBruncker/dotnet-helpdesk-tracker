@@ -1,10 +1,10 @@
-namespace Helpdesktracker.Api.Domain;
+namespace HelpdeskTracker.Api.Domain;
+
 public enum TicketCategory
 {
     Hardware,
     Software,
     Access,
-    UserAccount,
     Network,
     Other
 }

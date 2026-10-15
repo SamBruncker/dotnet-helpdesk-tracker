@@ -1,4 +1,5 @@
-namespace Helpdesktracker.Api.Domain;
+namespace HelpdeskTracker.Api.Domain;
+
 public enum TicketPriority
 {
     Low,
