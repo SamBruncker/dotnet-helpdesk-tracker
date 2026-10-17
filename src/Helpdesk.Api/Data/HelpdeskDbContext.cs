@@ -21,6 +21,7 @@ public class HelpdeskDbContext : DbContext
             entity.Property(u => u.Email).IsRequired().HasMaxLength(254);
             entity.HasIndex(u => u.Email).IsUnique();
             entity.Property(u => u.Role).HasConversion<string>().HasMaxLength(20);
+            entity.Property(u => u.IsActive).HasDefaultValue(true);
         });
 
         modelBuilder.Entity<Ticket>(entity =>
