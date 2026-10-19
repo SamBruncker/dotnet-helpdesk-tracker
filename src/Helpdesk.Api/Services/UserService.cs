@@ -4,11 +4,13 @@ using Microsoft.EntityFrameworkCore;
 using HelpdeskTracker.Api.Data;
 using HelpdeskTracker.Api.Domain;
 
+
 namespace HelpdeskTracker.Api.Services;
 
 public class UserService : IUserService
 {
     private readonly HelpdeskDbContext _dbContext;
+
     public UserService(HelpdeskDbContext dbContext)
     {
         _dbContext = dbContext;
@@ -53,9 +55,42 @@ public class UserService : IUserService
         return ServiceResult<UserResponseDto>.Ok(user);
     }
 
-    public Task<ServiceResult<UserResponseDto>> CreateAsync(CreateUserRequestDto request, CancellationToken cancellationToken = default)
+    public async Task<ServiceResult<UserResponseDto>> CreateAsync(CreateUserRequestDto request, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        // Only need to trim. SQL Server compares cases insensitively.
+        string displayName = request.DisplayName.Trim();
+        string email = request.Email.Trim();
+
+        bool emailExists = await _dbContext.Users.AnyAsync(u => u.Email == email, cancellationToken);
+
+        if (emailExists)
+        {
+            return ServiceResult<UserResponseDto>.Fail(ErrorKind.Conflict, "Email already exists");
+        }
+
+        User user = new User
+        {
+            DisplayName = displayName,
+            Email = email,
+            Role = request.Role,
+            IsActive = true
+        };
+
+        try
+        {
+            _dbContext.Users.Add(user);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        //Handle a race case where two requests are made with the same email.
+        catch (DbUpdateException)
+        {
+            //This is a bit of a catch all at the moment. In future, tighten this error to reduce likelihood
+            //of an unrelated error returning an email related message.
+            return ServiceResult<UserResponseDto>.Fail(ErrorKind.Conflict, "Email already exists");
+        }
+
+        return ServiceResult<UserResponseDto>.Ok(MapToDto(user));
+
     }
 
     public Task<ServiceResult<UserResponseDto>> UpdateAsync(int id, UpdateUserRequestDto request, CancellationToken cancellationToken = default)
@@ -76,5 +111,17 @@ public class UserService : IUserService
     public Task<ServiceResult> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
+    }
+
+    private static UserResponseDto MapToDto(User user)
+    {
+        return new UserResponseDto
+        {
+            Id = user.Id,
+            DisplayName = user.DisplayName,
+            Email = user.Email,
+            Role = user.Role,
+            IsActive = user.IsActive
+        };
     }
 }
