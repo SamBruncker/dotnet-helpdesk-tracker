@@ -93,9 +93,47 @@ public class UserService : IUserService
 
     }
 
-    public Task<ServiceResult<UserResponseDto>> UpdateAsync(int id, UpdateUserRequestDto request, CancellationToken cancellationToken = default)
+    //A note for future.
+    //Currently this method has no checks to make sure a requester has permissions
+    //to reactivate a deactivated user. In a future iteration, this should be patched.
+    public async Task<ServiceResult<UserResponseDto>> UpdateAsync(int id, UpdateUserRequestDto request, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+
+        if (user is null)
+        {
+            return ServiceResult<UserResponseDto>.Fail(ErrorKind.NotFound, "User not found");
+        }
+
+        string displayName = request.DisplayName.Trim();
+        string email = request.Email.Trim();
+
+        //Check for potential clashes with other users' emails.
+        bool emailExists = await _dbContext.Users.AnyAsync(u => u.Email == email && u.Id != id, cancellationToken);
+
+        if (emailExists)
+        {
+            return ServiceResult<UserResponseDto>.Fail(ErrorKind.Conflict, "Email already exists");
+        }
+
+        //Update user info
+        user.DisplayName = displayName;
+        user.Email = email;
+        user.Role = request.Role;
+
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        //Handle a race case where two requests are made with the same email.
+        catch (DbUpdateException)
+        {
+            //This is a bit of a catch all at the moment. In future, tighten this error to reduce likelihood
+            //of an unrelated error returning an email related message.
+            return ServiceResult<UserResponseDto>.Fail(ErrorKind.Conflict, "Email already exists");
+        }
+
+        return ServiceResult<UserResponseDto>.Ok(MapToDto(user));
     }
 
     public Task<ServiceResult<UserResponseDto>> DeactivateAsync(int id, CancellationToken cancellationToken = default)
