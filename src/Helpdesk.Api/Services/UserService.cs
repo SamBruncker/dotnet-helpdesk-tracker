@@ -154,7 +154,14 @@ public class UserService : IUserService
             return ServiceResult<UserResponseDto>.Fail(ErrorKind.Conflict, "User is already deactivated");
         }
 
+        bool hasOpenTickets = await _dbContext.Tickets.AnyAsync(t => t.AssigneeId == id
+            && t.Status != TicketStatus.Unresolved
+            && t.Status != TicketStatus.Resolved, cancellationToken);
 
+        if (hasOpenTickets)
+        {
+            return ServiceResult<UserResponseDto>.Fail(ErrorKind.Conflict, "User has open tickets and cannot be deactivated");
+        }
 
         user.IsActive = false;
 
@@ -163,9 +170,26 @@ public class UserService : IUserService
         return ServiceResult<UserResponseDto>.Ok(MapToDto(user));
     }
 
-    public Task<ServiceResult<UserResponseDto>> ActivateAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<ServiceResult<UserResponseDto>> ActivateAsync(int id, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+
+        if (user is null)
+        {
+            return ServiceResult<UserResponseDto>.Fail(ErrorKind.NotFound, "User not found.");
+        }
+
+        if (user.IsActive)
+        {
+            return ServiceResult<UserResponseDto>.Fail(ErrorKind.Conflict, "User is already active.");
+        }
+
+        user.IsActive = true;
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return ServiceResult<UserResponseDto>.Ok(MapToDto(user));
+
     }
 
     public Task<ServiceResult> DeleteAsync(int id, CancellationToken cancellationToken = default)
