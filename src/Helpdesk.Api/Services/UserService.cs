@@ -136,9 +136,31 @@ public class UserService : IUserService
         return ServiceResult<UserResponseDto>.Ok(MapToDto(user));
     }
 
-    public Task<ServiceResult<UserResponseDto>> DeactivateAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<ServiceResult<UserResponseDto>> DeactivateAsync(int id, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+
+        bool hasOpentickets = await _dbContext.Tickets.AnyAsync(t => t.AssigneeId == id
+            && t.Status != TicketStatus.Unresolved
+            && t.Status != TicketStatus.Resolved, cancellationToken);
+
+        if (user is null)
+        {
+            return ServiceResult<UserResponseDto>.Fail(ErrorKind.NotFound, "User not found");
+        }
+
+        if (!user.IsActive)
+        {
+            return ServiceResult<UserResponseDto>.Fail(ErrorKind.Conflict, "User is already deactivated");
+        }
+
+
+
+        user.IsActive = false;
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return ServiceResult<UserResponseDto>.Ok(MapToDto(user));
     }
 
     public Task<ServiceResult<UserResponseDto>> ActivateAsync(int id, CancellationToken cancellationToken = default)
