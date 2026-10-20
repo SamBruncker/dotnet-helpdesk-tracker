@@ -192,9 +192,41 @@ public class UserService : IUserService
 
     }
 
-    public Task<ServiceResult> DeleteAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<ServiceResult> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+
+        if (user is null)
+        {
+            return ServiceResult.Fail(ErrorKind.NotFound, "User not found.");
+        }
+
+        bool userIsActive = user.IsActive;
+
+        if (userIsActive)
+        {
+            return ServiceResult.Fail(ErrorKind.Conflict, "Active users cannot be deleted. Please deactivate the user first.");
+        }
+
+        bool hasTickets = await _dbContext.Tickets.AnyAsync(
+            t => t.RequesterId == id || t.AssigneeId == id, cancellationToken);
+
+        if (hasTickets)
+        {
+            return ServiceResult.Fail(ErrorKind.Conflict, "User has associated tickets and cannot be deleted.");
+        }
+
+        try
+        {
+            _dbContext.Users.Remove(user);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            return ServiceResult.Fail(ErrorKind.Conflict, "Unable to delete user due to database constraints.");
+        }
+
+        return ServiceResult.Ok();
     }
 
     private static UserResponseDto MapToDto(User user)
