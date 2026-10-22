@@ -54,7 +54,7 @@ public class UsersController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Value.Id }, result.Value);
     }
 
-    //HttpPatch is used when only certain elements of a database entry are modified.
+
     [HttpPost("{id:int}/activate")]
     public async Task<ActionResult<UserResponseDto>> ActivateUser(int id, CancellationToken cancellationToken)
     {
@@ -89,7 +89,7 @@ public class UsersController : ControllerBase
         return Ok(result.Value);
     }
 
-    //HttpPut is used when potential Exists to modify the whole database entry.
+
     [HttpPut("{id:int}")]
     public async Task<ActionResult<UserResponseDto>> UpdateUser(int id, [FromBody] UpdateUserRequestDto request, CancellationToken cancellationToken)
     {
@@ -110,7 +110,7 @@ public class UsersController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        var result = await _userService.DeactivateAsync(id, cancellationToken);
+        var result = await _userService.DeleteAsync(id, cancellationToken);
 
         if (!result.IsSuccess)
         {
@@ -121,7 +121,7 @@ public class UsersController : ControllerBase
                 _ => StatusCode(StatusCodes.Status500InternalServerError, result.ErrorMessage)
             };
         }
-        return Ok(result.Value);
+        return NoContent();
     }
 
 
