@@ -201,9 +201,7 @@ public class UserService : IUserService
             return ServiceResult.Fail(ErrorKind.NotFound, "User not found.");
         }
 
-        bool userIsActive = user.IsActive;
-
-        if (userIsActive)
+        if (user.IsActive)
         {
             return ServiceResult.Fail(ErrorKind.Conflict, "Active users cannot be deleted. Please deactivate the user first.");
         }
