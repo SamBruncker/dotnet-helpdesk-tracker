@@ -12,5 +12,4 @@ public interface ITicketService
     Task<ServiceResult<TicketResponseDto>> UpdateAsync(int id, UpdateTicketRequestDto request, CancellationToken cancellationToken = default);
     Task<ServiceResult<TicketResponseDto>> AssignAsync(int id, AssignTicketRequestDto request, CancellationToken cancellationToken = default);
     Task<ServiceResult<TicketResponseDto>> ChangeStatusAsync(int id, ChangeTicketStatusRequestDto request, CancellationToken cancellationToken = default);
-
 }
