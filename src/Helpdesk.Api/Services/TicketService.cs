@@ -161,6 +161,11 @@ public class TicketService : ITicketService
             return ServiceResult<TicketResponseDto>.Fail(ErrorKind.Conflict, "This ticket has been closed and cannot be edited.");
         }
 
+        if (request.AssigneeId is null && ticket.Status is TicketStatus.InProgress || ticket.Status is TicketStatus.OnHold)
+        {
+
+        }
+
         if (request.AssigneeId is not null)
         {
             var user = await _dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == request.AssigneeId, cancellationToken);
@@ -198,6 +203,19 @@ public class TicketService : ITicketService
         if (ticket.Status is TicketStatus.Resolved || ticket.Status is TicketStatus.Unresolved)
         {
             return ServiceResult<TicketResponseDto>.Fail(ErrorKind.Conflict, "The status of closed tickets cannot be changed.");
+        }
+
+        if (!TicketTransitions.CanTransition(ticket.Status, request.Status))
+        {
+            return ServiceResult<TicketResponseDto>.Fail(ErrorKind.Conflict, $"Cannot change status from {ticket.Status} to {request.Status}.");
+        }
+
+        if (request.Status is TicketStatus.Resolved or TicketStatus.InProgress)
+        {
+            if (ticket.AssigneeId is null)
+            {
+                return ServiceResult<TicketResponseDto>.Fail(ErrorKind.Conflict, $"Tickets must be assigned to an agent before they can be assigned to {request.Status}.");
+            }
         }
 
         if (request.Status == TicketStatus.Resolved)

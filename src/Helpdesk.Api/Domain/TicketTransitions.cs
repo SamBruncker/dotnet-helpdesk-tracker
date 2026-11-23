@@ -13,6 +13,6 @@ public static class TicketTransitions
 
     public static bool CanTransition(TicketStatus fromStatus, TicketStatus toStatus)
     {
-        return _transitions.TryGetValue(fromStatus, out var allowedTransitions) && allowedTransitions.Contains(toStatus);  
+        return _transitions.TryGetValue(fromStatus, out var allowedTransitions) && allowedTransitions.Contains(toStatus);
     }
 }
