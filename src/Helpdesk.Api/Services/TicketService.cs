@@ -161,9 +161,9 @@ public class TicketService : ITicketService
             return ServiceResult<TicketResponseDto>.Fail(ErrorKind.Conflict, "This ticket has been closed and cannot be edited.");
         }
 
-        if (request.AssigneeId is null && ticket.Status is TicketStatus.InProgress || ticket.Status is TicketStatus.OnHold)
+        if (request.AssigneeId is null && (ticket.Status is TicketStatus.InProgress || ticket.Status is TicketStatus.OnHold))
         {
-
+            return ServiceResult<TicketResponseDto>.Fail(ErrorKind.Conflict, "Tickets cannot be unassigned when they are in progress or on hold.");
         }
 
         if (request.AssigneeId is not null)
@@ -214,7 +214,7 @@ public class TicketService : ITicketService
         {
             if (ticket.AssigneeId is null)
             {
-                return ServiceResult<TicketResponseDto>.Fail(ErrorKind.Conflict, $"Tickets must be assigned to an agent before they can be assigned to {request.Status}.");
+                return ServiceResult<TicketResponseDto>.Fail(ErrorKind.Conflict, $"Tickets must be assigned to an agent before they can be moved to {request.Status}.");
             }
         }
 
